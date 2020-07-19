@@ -1,5 +1,6 @@
 #include "Arduino.h"
 
+#include <EEPROM.h>
 
 #include <AccelStepper.h>
 #include <MultiStepper.h>
@@ -42,18 +43,25 @@ RF24 radio(53, 49);  // CE, CSN
 //address through which two modules communicate.
 const byte address[6] = "69489";
 
-const byte EEPROMIdPTZ[] = {2, 99, 17, 123, 55}; // Numbers written in the EEPROM (0 - 4) to detect first time boot. On the PTZ head.
+const byte EEPROMIdPTZ[5] = {2, 99, 17, 123, 45}; // Numbers written in the EEPROM (0 - 4) to detect first time boot. On the PTZ head.
 
 
 int gotoPos[] = {0, 90, 180, -90, -180};
 
+byte speed = 127;
+unsigned long lastJoyReceive;
 
+struct vector {
+  int x;
+  int y;
+};
 
 
 void setup() {
 
   Serial.begin(115200);
-  Serial.print("Starting... ");
+  delay(500);
+  Serial.println("Starting... ");
 
 
   pinMode(LED, OUTPUT);
@@ -61,9 +69,10 @@ void setup() {
   pinMode(X_ENABLE_PIN, OUTPUT);
   pinMode(X_MAX_PIN, INPUT_PULLUP);
 
-
-
   digitalWrite(LED, HIGH);
+
+  EEPROMCheck();
+
   digitalWrite(X_ENABLE_PIN, LOW);
 
   homeX();
@@ -80,9 +89,11 @@ void setup() {
 
   digitalWrite(LED, LOW);
 
-  // xAxis.setMaxSpeed(5000);
-  xAxis.setMaxSpeed(750);
+  xAxis.setMaxSpeed(5000);
+  // xAxis.setMaxSpeed(750);
   xAxis.setAcceleration(4000);
+
+  lastJoyReceive = millis();
 
   Serial.println("done.");
 }
@@ -92,7 +103,6 @@ void setup() {
 
 void loop(){
 
-
   //Read the data if available in buffer
   if (radio.available())
   {
@@ -101,32 +111,35 @@ void loop(){
     
 
 
-    // Serial.print("R: Command: ");
-    // Serial.print(receivedData[0]);
-    // Serial.print(" Data: ");
-    // for (int x = 1; x < sizeof(receivedData); x++){
-    //   // if (receivedData[x] == 0){
-    //   //   break;
-    //   // }
-    //   Serial.print(receivedData[x]);
-    //   Serial.print(" ");
-    // }
-    // Serial.println();
 
-
-    if (receivedData[0] == callPos){
-      moveToPos(receivedData[1]);
+    if (receivedData[0] == joyUpdate){
+      speed = receivedData[1];
+      lastJoyReceive = millis();
     }
+    else if (receivedData[0] == writePos){
+      posToWrite(receivedData[1]);
+    }
+    else if (receivedData[0] == callPos){
+      moveToPos(receivedData[1]);
+    } 
+
+
   }
-  xAxis.run();
+  if (speed != 127 && millis() < lastJoyReceive + 250){
+    xAxis.setAcceleration(5000000);
+    xAxis.setSpeed(map(speed, 0, 255, -2000, 2000));
+    xAxis.runSpeed();
+    xAxis.moveTo(xAxis.currentPosition());
+  }
+  else {
+    
+    xAxis.run();
+  }
 }
 
 
 
-int degree(int degree){
-  // return 26000 / 360 * degree; // Returned incorrect value, probably due to too big var size
-  return 72.22 * degree;
-}
+
 
 
 
@@ -135,9 +148,17 @@ void moveToPos(int pos){
   xAxis.setMaxSpeed(5000.0);
   xAxis.setAcceleration(4000.0);
 
-  xAxis.moveTo(degree(gotoPos[pos-1]));
+  vector newPos;
+  EEPROM.get(5 + (pos-1) * 4, newPos);
+  xAxis.moveTo(degree(newPos.x));
 }
 
+void posToWrite(int pos){
+  vector newPos;
+  newPos.x = steps(xAxis.currentPosition());
+  newPos.y = steps(0);
+  EEPROM.put(5 + (pos-1) * 4, newPos);
+}
 
 
 void homeX(){
@@ -165,8 +186,35 @@ void homeX(){
   xAxis.runToPosition();
 }
 
+int degree(int degree){
+  // return 26000 / 360 * degree; // Returned incorrect value, probably due to too big var size
+  return 72.22 * degree;
+}
 
+int steps(int steps){
+  return steps / 72.22;
+}
 
+void EEPROMCheck(){
+  bool success = true;
+  for (int x; x < sizeof(EEPROMIdPTZ); x++){
+    if(EEPROM.read(x) != EEPROMIdPTZ[x]){
+      success = false;
+      break;
+    }
+  }
+  
+  if (success == false){
+    Serial.print("Rewriting EEPROM...");
+    for (int x; x < sizeof(EEPROMIdPTZ); x++){
+      EEPROM.update(x, EEPROMIdPTZ[x]);
+    }
+    for (int x = sizeof(EEPROMIdPTZ); x < EEPROM.length(); x++){
+      EEPROM.update(x, 0x00);
+    }
+    Serial.println("Rewritten.");
+  }
+}
 
 
 
