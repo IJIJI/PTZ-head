@@ -75,9 +75,6 @@ void setup() {
 
   digitalWrite(X_ENABLE_PIN, LOW);
 
-  homeX();
-
-
   radio.begin();
   
   //set the address
@@ -85,6 +82,8 @@ void setup() {
   
   //Set module as receiver
   radio.startListening();
+
+  homeX();
 
 
   digitalWrite(LED, LOW);
@@ -106,7 +105,7 @@ void loop(){
   //Read the data if available in buffer
   if (radio.available())
   {
-    byte receivedData[10] = {0};
+    byte receivedData[8] = {0};
     radio.read(&receivedData, sizeof(receivedData));
     
 
@@ -124,6 +123,9 @@ void loop(){
     } 
     else if (receivedData[0] == homeNow){
       homeX();
+    } 
+    else if (receivedData[0] == errorNow){
+      errorCode(receivedData[1]);
     } 
 
 
@@ -172,7 +174,7 @@ void homeX(){
   xAxis.setMaxSpeed(5000.0);
   xAxis.setAcceleration(4000.0);
 
-
+  digitalWrite(X_ENABLE_PIN, LOW);
 
   while (!digitalRead(X_MAX_PIN)) { // Make the Stepper move CW until the switch is deactivated
     xAxis.setSpeed(5000);
@@ -189,7 +191,7 @@ void homeX(){
   // xAxis.runToPosition();
 
   moveToPos(10);
-  // xAxis.moveTo(0);
+  // xAxis.runToPosition();
 }
 
 int degree(int degree){
@@ -229,12 +231,13 @@ void errorCode(int code){
   if (code == 1){
     Serial.println("");
     Serial.println("ERROR: 001. Failed homing. Reset to continue.");
+    errorLoop(true);
   }
   else {
     errorCode();
   }
 
-  errorLoop();
+  
 }
 
 void errorCode(){
@@ -242,20 +245,36 @@ void errorCode(){
   Serial.println("");
   Serial.println("ERROR. Reset to continue.");
   
-  errorLoop();
+  errorLoop(false);
 }
 
 
 
-void errorLoop(){
+void errorLoop(bool allowedHome){
 
   digitalWrite(X_ENABLE_PIN, HIGH);
 
+
+  unsigned long lastChanged = millis();
+
   while(true){
-    digitalWrite(LED, HIGH);
-    delay(750);
-    digitalWrite(LED, LOW);
-    delay(750);
+    if (lastChanged + 600 < millis()){
+      lastChanged = millis();
+      digitalWrite(LED, !digitalRead(LED));
+    }
+
+
+    if (radio.available())
+    {
+      byte receivedDataError[8] = {0};
+      radio.read(&receivedDataError, sizeof(receivedDataError));
+
+      if (receivedDataError[0] == homeNow){
+        homeX();
+        break;
+      }
+    }
+
   }
 }
 

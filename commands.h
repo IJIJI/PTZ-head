@@ -13,4 +13,6 @@ const byte callPos = 3; // formatting: identifier, button, speed
 
 const byte homeNow = 4; // formatting: identifier
 
+const byte errorNow = 5; // formatting: identifier, errorcode
+
 // Button formatting = none:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 0:10, *:11, #:12
