@@ -122,6 +122,9 @@ void loop(){
     else if (receivedData[0] == callPos){
       moveToPos(receivedData[1]);
     } 
+    else if (receivedData[0] == homeNow){
+      homeX();
+    } 
 
 
   }
@@ -182,8 +185,11 @@ void homeX(){
   
 
   xAxis.setCurrentPosition(19500);
-  xAxis.moveTo(0);
-  xAxis.runToPosition();
+  // xAxis.moveTo(0);
+  // xAxis.runToPosition();
+
+  moveToPos(10);
+  // xAxis.moveTo(0);
 }
 
 int degree(int degree){

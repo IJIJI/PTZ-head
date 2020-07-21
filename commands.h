@@ -1,4 +1,4 @@
-const String commandNames[] = {"null", "joyUpdate", "writePos", "callPos"};
+const String commandNames[] = {"null", "joyUpdate", "writePos", "callPos", "homeNow"};
 
 
 const byte joyUpdate = 1; // formatting: identifier, joyX, joyY, joyZ, Speed
@@ -10,5 +10,7 @@ const byte joyUpdate = 1; // formatting: identifier, joyX, joyY, joyZ, Speed
 const byte writePos = 2; // formatting: identifier, button
 const byte callPos = 3; // formatting: identifier, button, speed
 // button formatting = none:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 0:10
+
+const byte homeNow = 4; // formatting: identifier
 
 // Button formatting = none:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 0:10, *:11, #:12
