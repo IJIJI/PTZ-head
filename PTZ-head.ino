@@ -35,6 +35,7 @@
 
 
 AccelStepper xAxis(1, X_STEP_PIN, X_DIR_PIN);
+AccelStepper yAxis(1, Y_STEP_PIN, Y_DIR_PIN);
 
 
 //create an RF24 object
@@ -56,6 +57,7 @@ struct vector {
   int y;
 };
 
+vector speed = {127, 127};
 
 void setup() {
 
@@ -69,11 +71,15 @@ void setup() {
   pinMode(X_ENABLE_PIN, OUTPUT);
   pinMode(X_MAX_PIN, INPUT_PULLUP);
 
+  pinMode(Y_ENABLE_PIN, OUTPUT);
+  pinMode(Y_MAX_PIN, INPUT_PULLUP);
+
   digitalWrite(LED, HIGH);
 
   EEPROMCheck();
 
-  digitalWrite(X_ENABLE_PIN, LOW);
+  digitalWrite(X_ENABLE_PIN, HIGH);
+  digitalWrite(Y_ENABLE_PIN, HIGH);
 
   radio.begin();
   
@@ -91,6 +97,10 @@ void setup() {
   xAxis.setMaxSpeed(5000);
   // xAxis.setMaxSpeed(750);
   xAxis.setAcceleration(4000);
+
+  yAxis.setMaxSpeed(2500);
+  // xAxis.setMaxSpeed(750);
+  yAxis.setAcceleration(2000);
 
   lastJoyReceive = millis();
 
@@ -112,7 +122,8 @@ void loop(){
 
 
     if (receivedData[0] == joyUpdate){
-      speed = receivedData[1];
+      speed.x = receivedData[1];
+      speed.y = receivedData[2];
       lastJoyReceive = millis();
     }
     else if (receivedData[0] == writePos){
@@ -130,15 +141,22 @@ void loop(){
 
 
   }
-  if (speed != 127 && millis() < lastJoyReceive + 250){
+  if (speed.x != 127 || speed.y != 127 && millis() < lastJoyReceive + 250){
     xAxis.setAcceleration(5000000);
-    xAxis.setSpeed(map(speed, 0, 255, -2000, 2000));
+    xAxis.setSpeed(map(speed.x, 0, 255, -2000, 2000));
+
+    yAxis.setAcceleration(5000000);
+    yAxis.setSpeed(map(speed.y, 0, 255, -2000, 2000));
+
     xAxis.runSpeed();
     xAxis.moveTo(xAxis.currentPosition());
+
+    yAxis.runSpeed();
+    yAxis.moveTo(yAxis.currentPosition());
   }
   else {
-    
     xAxis.run();
+    yAxis.run();
   }
 }
 
@@ -153,15 +171,19 @@ void moveToPos(int pos){
   xAxis.setMaxSpeed(5000.0);
   xAxis.setAcceleration(4000.0);
 
+  yAxis.setMaxSpeed(2500.0);
+  yAxis.setAcceleration(2000.0);
+
   vector newPos;
   EEPROM.get(5 + (pos-1) * 4, newPos);
   xAxis.moveTo(degree(newPos.x));
+  yAxis.moveTo(degree(newPos.y));
 }
 
 void posToWrite(int pos){
   vector newPos;
   newPos.x = steps(xAxis.currentPosition());
-  newPos.y = steps(0);
+  newPos.y = steps(yAxis.currentPosition());
   EEPROM.put(5 + (pos-1) * 4, newPos);
 }
 
@@ -194,13 +216,28 @@ void homeX(){
   // xAxis.runToPosition();
 }
 
+void homeY(){
+
+  // 360 degree 24000
+  // 1.75 rotation = 42000
+  yAxis.setCurrentPosition(0);
+  yAxis.setMaxSpeed(2500.0);
+  yAxis.setAcceleration(2000.0);
+
+  digitalWrite(Y_ENABLE_PIN, LOW);
+  
+
+  yAxis.setCurrentPosition(0);
+
+}
+
 int degree(int degree){
   // return 26000 / 360 * degree; // Returned incorrect value, probably due to too big var size
-  return 72.22 * degree;
+  return 8.888888 * degree * 4;
 }
 
 int steps(int steps){
-  return steps / 72.22;
+  return steps * 0.1125 / 4;
 }
 
 void EEPROMCheck(){
@@ -253,6 +290,7 @@ void errorCode(){
 void errorLoop(bool allowedHome){
 
   digitalWrite(X_ENABLE_PIN, HIGH);
+  digitalWrite(Y_ENABLE_PIN, HIGH);
 
 
   unsigned long lastChanged = millis();
