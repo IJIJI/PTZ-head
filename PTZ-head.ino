@@ -89,8 +89,8 @@ void setup() {
   //Set module as receiver
   radio.startListening();
 
-  homeX();
-
+  // home();
+  errorLoop(true);
 
   digitalWrite(LED, LOW);
 
@@ -133,7 +133,7 @@ void loop(){
       moveToPos(receivedData[1]);
     } 
     else if (receivedData[0] == homeNow){
-      homeX();
+      home();
     } 
     else if (receivedData[0] == errorNow){
       errorCode(receivedData[1]);
@@ -187,6 +187,11 @@ void posToWrite(int pos){
   EEPROM.put(5 + (pos-1) * 4, newPos);
 }
 
+void home(){
+  homeX();
+  homeY();
+  moveToPos(1);
+}
 
 void homeX(){
 
@@ -209,11 +214,7 @@ void homeX(){
   
 
   xAxis.setCurrentPosition(19500);
-  // xAxis.moveTo(0);
-  // xAxis.runToPosition();
 
-  moveToPos(10);
-  // xAxis.runToPosition();
 }
 
 void homeY(){
@@ -308,7 +309,7 @@ void errorLoop(bool allowedHome){
       radio.read(&receivedDataError, sizeof(receivedDataError));
 
       if (receivedDataError[0] == homeNow){
-        homeX();
+        home();
         break;
       }
     }
