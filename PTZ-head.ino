@@ -49,7 +49,7 @@ const byte EEPROMIdPTZ[5] = {2, 99, 17, 123, 45}; // Numbers written in the EEPR
 
 int gotoPos[] = {0, 90, 180, -90, -180};
 
-byte speed = 127;
+
 unsigned long lastJoyReceive;
 
 struct vector {
