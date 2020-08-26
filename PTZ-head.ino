@@ -47,9 +47,6 @@ const byte address[6] = "69489";
 const byte EEPROMIdPTZ[5] = {3, 99, 17, 123, 45}; // Numbers written in the EEPROM (0 - 4) to detect first time boot. On the PTZ head.
 
 
-int gotoPos[] = {0, 90, 180, -90, -180};
-
-
 unsigned long lastJoyReceive;
 
 struct vector {
