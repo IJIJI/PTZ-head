@@ -86,7 +86,10 @@ void setup() {
   //Set module as receiver
   radio.startListening();
 
-  // home();
+
+  errorCode();
+  
+
   errorLoop(true);
 
   digitalWrite(LED, LOW);
@@ -259,14 +262,25 @@ void EEPROMCheck(){
   }
 }
 
+void errorCheck(){
+  if (!digitalRead(X_MAX_PIN) || !digitalRead(Y_MAX_PIN)){
+    errorCode(2);
+  }
 
+
+}
 
 
 void errorCode(int code){
   if (code == 1){
     Serial.println("");
-    Serial.println("ERROR: 001. Failed homing. Reset to continue.");
+    Serial.println("ERROR: 001. Failed homing. Re-Home to continue.");
     errorLoop(true);
+  }
+  if (code == 2){
+    Serial.println("");
+    Serial.println("ERROR: 002. No homing switch detected. Try moving the head and resetting by disconnecting the power.");
+    errorLoop(false);
   }
   else {
     errorCode();
